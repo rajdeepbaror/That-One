@@ -21,8 +21,12 @@
 <style>
 /* ── Reset & Base ─────────────────────────────────────────── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#050510;color:#e0e6f0}
-canvas{display:block}
+html{scroll-behavior:smooth}
+body{width:100%;min-height:100vh;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#050510;color:#e0e6f0;overflow-x:hidden}
+
+/* ── Simulation viewport ──────────────────────────────────── */
+#simSection{position:relative;width:100%;height:100vh;overflow:hidden}
+#simSection canvas{display:block}
 
 /* ── Glassmorphism helper ─────────────────────────────────── */
 .glass{
@@ -34,10 +38,7 @@ canvas{display:block}
 }
 
 /* ── Control Panel (left) ─────────────────────────────────── */
-#controls{
-  position:absolute;top:16px;left:16px;width:280px;padding:18px 20px;
-  z-index:10;
-}
+#controls{position:absolute;top:16px;left:16px;width:280px;padding:18px 20px;z-index:10}
 #controls h2{font-size:15px;text-transform:uppercase;letter-spacing:1.6px;color:#7eb8ff;margin-bottom:14px;text-align:center}
 .ctrl-group{margin-bottom:12px}
 .ctrl-group label{display:block;font-size:12px;color:#8ea8d0;margin-bottom:4px}
@@ -47,661 +48,586 @@ canvas{display:block}
   display:inline-block;padding:7px 14px;font-size:12px;cursor:pointer;
   border:1px solid rgba(100,160,255,.35);border-radius:8px;
   background:rgba(60,100,200,.18);color:#b0d0ff;
-  transition:background .2s,color .2s;margin:3px 2px;text-align:center;
+  transition:background .2s,color .2s;margin:3px 2px;text-align:center;font-family:inherit;
 }
 .btn:hover{background:rgba(80,140,255,.35);color:#fff}
 .btn.active{background:rgba(50,180,120,.3);border-color:rgba(50,200,140,.5);color:#70ffb8}
 .btn-row{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
 
 /* ── Telemetry (right) ────────────────────────────────────── */
-#telemetry{
-  position:absolute;top:16px;right:16px;width:260px;padding:18px 20px;
-  z-index:10;
-}
+#telemetry{position:absolute;top:16px;right:16px;width:260px;padding:18px 20px;z-index:10}
 #telemetry h2{font-size:15px;text-transform:uppercase;letter-spacing:1.6px;color:#7eb8ff;margin-bottom:14px;text-align:center}
 .telem-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid rgba(100,140,220,.1)}
 .telem-row .lbl{color:#7a99c4}
 .telem-row .val{color:#c0dcff;font-variant-numeric:tabular-nums}
 
-/* ── Presentation Button ──────────────────────────────────── */
-#openPresBtn{
-  position:absolute;bottom:20px;right:20px;z-index:10;
-  padding:10px 22px;font-size:14px;cursor:pointer;
-  border:1px solid rgba(100,160,255,.4);border-radius:10px;
-  background:rgba(40,70,160,.35);color:#a0ccff;
-  backdrop-filter:blur(8px);
-  transition:background .25s;
+/* ── Scroll-down hint ─────────────────────────────────────── */
+#scrollHint{
+  position:absolute;bottom:28px;left:50%;transform:translateX(-50%);
+  z-index:10;text-align:center;cursor:pointer;
+  animation:hintPulse 2.2s ease-in-out infinite;
 }
-#openPresBtn:hover{background:rgba(60,100,200,.55);color:#fff}
+#scrollHint .arrow{font-size:28px;color:#6a9edf;display:block}
+#scrollHint .label{font-size:13px;color:#5a8ac0;letter-spacing:1px}
+@keyframes hintPulse{0%,100%{opacity:.5;transform:translateX(-50%) translateY(0)}50%{opacity:1;transform:translateX(-50%) translateY(6px)}}
 
-/* ── Presentation Modal ───────────────────────────────────── */
-#presModal{
-  display:none;position:fixed;inset:0;z-index:100;
-  background:rgba(2,4,14,.82);
-  justify-content:center;align-items:center;
+/* ── Presentation Section ─────────────────────────────────── */
+#presentation{position:relative;max-width:900px;margin:0 auto;padding:60px 40px 80px}
+#presentation h2{font-size:32px;color:#80b8ff;margin:50px 0 20px;padding-bottom:12px;border-bottom:1px solid rgba(100,160,255,.2)}
+#presentation h2:first-child{margin-top:0}
+#presentation h3{font-size:22px;color:#90c4ff;margin:36px 0 14px}
+#presentation p{font-size:16px;line-height:1.85;color:#bcc8e0;margin-bottom:16px}
+#presentation ul,#presentation ol{padding-left:24px;margin-bottom:16px}
+#presentation li{font-size:16px;line-height:1.85;color:#bcc8e0;margin-bottom:8px}
+#presentation strong{color:#d0e0ff}
+#presentation em{color:#a0c4ff}
+.math-block{
+  margin:20px 0;text-align:center;font-size:18px;color:#d0e0ff;
+  padding:16px;background:rgba(20,30,60,.4);
+  border:1px solid rgba(100,150,255,.12);border-radius:10px;
 }
-#presModal.open{display:flex}
-#presContent{
-  width:min(800px,92vw);max-height:86vh;padding:32px 36px;
-  overflow-y:auto;position:relative;
+.example-box{
+  background:rgba(25,45,80,.35);border:1px solid rgba(80,140,255,.2);
+  border-radius:12px;padding:20px 24px;margin:20px 0;
 }
-#presContent h3{font-size:22px;color:#80b8ff;margin-bottom:14px}
-#presContent p,#presContent li{font-size:15px;line-height:1.72;color:#bcc8e0;margin-bottom:10px}
-#presContent ul{padding-left:22px}
-#presContent .math-block{margin:14px 0;text-align:center;font-size:17px;color:#d0e0ff}
-.pres-nav{display:flex;justify-content:space-between;align-items:center;margin-top:22px;padding-top:14px;border-top:1px solid rgba(100,150,255,.15)}
-.pres-nav .btn{min-width:90px}
-.pres-nav .page-ind{font-size:13px;color:#6a8ab8}
-#closePresBtn{
-  position:absolute;top:14px;right:18px;font-size:22px;cursor:pointer;
-  color:#6a8ab8;background:none;border:none;transition:color .2s;
+.example-box h4{font-size:16px;color:#70b0ff;margin-bottom:10px}
+.example-box p,.example-box li{font-size:15px;color:#a8bcd8;line-height:1.75}
+.example-box code{
+  background:rgba(80,120,200,.15);padding:2px 7px;border-radius:4px;
+  font-size:14px;color:#90ccff;font-family:'Cascadia Code','Fira Code',monospace;
 }
-#closePresBtn:hover{color:#fff}
+.divider{height:1px;background:linear-gradient(90deg,transparent,rgba(100,160,255,.25),transparent);margin:40px 0}
+
+/* ── Back-to-top ──────────────────────────────────────────── */
+#backToTop{
+  position:fixed;bottom:24px;right:24px;z-index:50;
+  width:44px;height:44px;border-radius:50%;
+  border:1px solid rgba(100,160,255,.3);background:rgba(20,40,80,.6);
+  backdrop-filter:blur(8px);color:#80b8ff;font-size:20px;
+  cursor:pointer;display:none;align-items:center;justify-content:center;
+  transition:background .2s,opacity .3s;font-family:inherit;
+}
+#backToTop:hover{background:rgba(40,80,160,.7);color:#fff}
+#backToTop.show{display:flex}
 
 /* ── Scrollbar ────────────────────────────────────────────── */
-::-webkit-scrollbar{width:6px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(100,150,255,.25);border-radius:3px}
+::-webkit-scrollbar{width:7px}
+::-webkit-scrollbar-track{background:rgba(5,5,16,.6)}
+::-webkit-scrollbar-thumb{background:rgba(100,150,255,.3);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(100,150,255,.5)}
 </style>
 </head>
 <body>
 
-<!-- ════════════════════════════════════════════════════════════
-     CONTROL PANEL
-     ════════════════════════════════════════════════════════ -->
-<div id="controls" class="glass">
-  <h2>⚡ Tether Controls</h2>
-
-  <div class="btn-row">
-    <button class="btn" id="btnCurrentOn">Current: OFF</button>
-    <button class="btn" id="btnPolarity">Polarity: +</button>
-  </div>
-
-  <div class="ctrl-group" style="margin-top:14px">
-    <label>Tether Length (L) <span class="val" id="valLen">20 km</span></label>
-    <input type="range" id="sliderLen" min="1" max="100" value="20">
-  </div>
-
-  <div class="ctrl-group">
-    <label>Current Magnitude (I) <span class="val" id="valCur">5 A</span></label>
-    <input type="range" id="sliderCur" min="0" max="20" step="0.5" value="5">
-  </div>
-
-  <div class="ctrl-group">
-    <label>Time Warp <span class="val" id="valTime">100×</span></label>
-    <input type="range" id="sliderTime" min="1" max="1000" value="100">
-  </div>
-</div>
-
-<!-- ════════════════════════════════════════════════════════════
-     TELEMETRY
-     ════════════════════════════════════════════════════════ -->
-<div id="telemetry" class="glass">
-  <h2>📡 Live Telemetry</h2>
-  <div class="telem-row"><span class="lbl">Altitude</span><span class="val" id="tAlt">—</span></div>
-  <div class="telem-row"><span class="lbl">Velocity</span><span class="val" id="tVel">—</span></div>
-  <div class="telem-row"><span class="lbl">Lorentz Force</span><span class="val" id="tForce">—</span></div>
-  <div class="telem-row"><span class="lbl">Orbital Energy</span><span class="val" id="tEnergy">—</span></div>
-  <div class="telem-row"><span class="lbl">Period</span><span class="val" id="tPeriod">—</span></div>
-</div>
-
-<!-- ════════════════════════════════════════════════════════════
-     PRESENTATION BUTTON & MODAL
-     ════════════════════════════════════════════════════════ -->
-<button id="openPresBtn">📖 Learn: EDT Science</button>
-
-<div id="presModal">
-  <div id="presContent" class="glass">
-    <button id="closePresBtn">&times;</button>
-    <div id="presPages"></div>
-    <div class="pres-nav">
-      <button class="btn" id="presPrev">◀ Previous</button>
-      <span class="page-ind" id="presPageInd">1 / 5</span>
-      <button class="btn" id="presNext">Next ▶</button>
+<!-- ═══════════════════════════════════════════════════════════
+     SIMULATION SECTION
+     ═══════════════════════════════════════════════════════ -->
+<section id="simSection">
+  <div id="controls" class="glass">
+    <h2>⚡ Tether Controls</h2>
+    <div class="btn-row">
+      <button class="btn" id="btnCurrentOn">Current: OFF</button>
+      <button class="btn" id="btnPolarity">Polarity: +</button>
+    </div>
+    <div class="ctrl-group" style="margin-top:14px">
+      <label>Tether Length (L) <span class="val" id="valLen">20 km</span></label>
+      <input type="range" id="sliderLen" min="1" max="100" value="20">
+    </div>
+    <div class="ctrl-group">
+      <label>Current Magnitude (I) <span class="val" id="valCur">5 A</span></label>
+      <input type="range" id="sliderCur" min="0" max="20" step="0.5" value="5">
+    </div>
+    <div class="ctrl-group">
+      <label>Time Warp <span class="val" id="valTime">100×</span></label>
+      <input type="range" id="sliderTime" min="1" max="1000" value="100">
     </div>
   </div>
-</div>
 
-<!-- ════════════════════════════════════════════════════════════
-     MAIN SCRIPT
-     ════════════════════════════════════════════════════════ -->
+  <div id="telemetry" class="glass">
+    <h2>📡 Live Telemetry</h2>
+    <div class="telem-row"><span class="lbl">Altitude</span><span class="val" id="tAlt">—</span></div>
+    <div class="telem-row"><span class="lbl">Velocity</span><span class="val" id="tVel">—</span></div>
+    <div class="telem-row"><span class="lbl">Lorentz Force</span><span class="val" id="tForce">—</span></div>
+    <div class="telem-row"><span class="lbl">Orbital Energy</span><span class="val" id="tEnergy">—</span></div>
+    <div class="telem-row"><span class="lbl">Period</span><span class="val" id="tPeriod">—</span></div>
+  </div>
+
+  <div id="scrollHint" onclick="document.getElementById('presentation').scrollIntoView({behavior:'smooth'})">
+    <span class="label">SCROLL DOWN TO LEARN MORE</span>
+    <span class="arrow">⌄</span>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PRESENTATION SECTION  (continuous scroll, ~5 pages worth)
+     ═══════════════════════════════════════════════════════ -->
+<section id="presentation"></section>
+
+<button id="backToTop" title="Back to simulation">↑</button>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCRIPT
+     ═══════════════════════════════════════════════════════ -->
 <script>
-/* ──────────────────────────────────────────────────────────
-   PHYSICAL CONSTANTS  (SI)
-   ────────────────────────────────────────────────────────── */
-const G        = 6.674e-11;       // gravitational constant
-const M_EARTH  = 5.972e24;        // kg
-const R_EARTH  = 6.371e6;         // metres
-const MU       = G * M_EARTH;     // standard gravitational parameter
-const B0       = 3.12e-5;         // magnetic field at equator surface (T)
-// Magnetic moment of Earth  m = B0 * R_E^3
-const MAG_MOM  = B0 * Math.pow(R_EARTH, 3);  // T·m³
+/* ── Constants (SI) ───────────────────────────────────────── */
+const G       = 6.674e-11;
+const M_EARTH = 5.972e24;
+const R_EARTH = 6.371e6;
+const MU      = G * M_EARTH;
+const B0      = 3.12e-5;
+const MAG_MOM = B0 * Math.pow(R_EARTH, 3);
+const SCALE   = R_EARTH;
+const SAT_MASS = 1000;
 
-/* ──────────────────────────────────────────────────────────
-   SIM SCALE
-   We map 1 unit in Three.js  =  R_EARTH metres.
-   ────────────────────────────────────────────────────────── */
-const SCALE = R_EARTH;  // 1 unit = R_EARTH
-
-/* ──────────────────────────────────────────────────────────
-   SIMULATION STATE
-   ────────────────────────────────────────────────────────── */
+/* ── State ────────────────────────────────────────────────── */
 const state = {
-  // Orbital state in SI (metres, m/s)
-  r: null,   // THREE.Vector3 position
-  v: null,   // THREE.Vector3 velocity
-  // Controls
-  currentOn: false,
-  polarity: 1,           // +1 = boost, -1 = deorbit
-  tetherLength: 20e3,    // metres
-  currentMag: 5,         // amperes
-  timeWarp: 100,
-  // Computed
+  r: null, v: null,
+  currentOn: false, polarity: 1,
+  tetherLength: 20e3, currentMag: 5, timeWarp: 100,
   lorentzMag: 0
 };
 
-// Start at 400 km altitude, circular orbit, equatorial
-const startAlt = 400e3; // metres above surface
-const startR   = R_EARTH + startAlt;
-const startV   = Math.sqrt(MU / startR);
+/* Start at 1.5 × R_EARTH from centre (altitude ≈ 3 185 km) */
+const startR = 1.5 * R_EARTH;
+const startV = Math.sqrt(MU / startR);
 state.r = new THREE.Vector3(startR, 0, 0);
-state.v = new THREE.Vector3(0, 0, startV);  // tangential
+state.v = new THREE.Vector3(0, 0, startV);
 
-/* ──────────────────────────────────────────────────────────
-   THREE.JS  SETUP
-   ────────────────────────────────────────────────────────── */
-const scene    = new THREE.Scene();
-const camera   = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 200);
-camera.position.set(0, 3, 5);
+/* ── Three.js setup ───────────────────────────────────────── */
+const simSection = document.getElementById('simSection');
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 500);
+camera.position.set(0, 2.5, 5.5);
+
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-document.body.appendChild(renderer.domElement);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+simSection.insertBefore(renderer.domElement, simSection.firstChild);
 
 const controls3D = new THREE.OrbitControls(camera, renderer.domElement);
 controls3D.enableDamping = true;
 controls3D.dampingFactor = 0.08;
-controls3D.minDistance   = 1.5;
-controls3D.maxDistance   = 50;
+controls3D.minDistance = 1.5;
+controls3D.maxDistance = 50;
 
-// Ambient + directional light
-scene.add(new THREE.AmbientLight(0x334466, 0.6));
-const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+scene.add(new THREE.AmbientLight(0x334466, 0.5));
+const sunLight = new THREE.DirectionalLight(0xfff8e8, 1.4);
 sunLight.position.set(5, 3, 4);
 scene.add(sunLight);
+const rimLight = new THREE.DirectionalLight(0x3366aa, 0.3);
+rimLight.position.set(-3, -1, -4);
+scene.add(rimLight);
 
 /* ── Starfield ────────────────────────────────────────────── */
-(function createStars(){
+(function(){
   const geo = new THREE.BufferGeometry();
-  const n = 6000;
-  const pos = new Float32Array(n * 3);
-  for(let i = 0; i < n * 3; i++) pos[i] = (Math.random() - 0.5) * 300;
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const mat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.12, sizeAttenuation: true });
-  scene.add(new THREE.Points(geo, mat));
+  const n = 10000, pos = new Float32Array(n*3), col = new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+    const i3=i*3;
+    const theta=Math.random()*Math.PI*2, phi=Math.acos(2*Math.random()-1);
+    const d=150+Math.random()*150;
+    pos[i3]=d*Math.sin(phi)*Math.cos(theta);
+    pos[i3+1]=d*Math.sin(phi)*Math.sin(theta);
+    pos[i3+2]=d*Math.cos(phi);
+    const t=Math.random();
+    col[i3]=0.8+t*0.2; col[i3+1]=0.85+t*0.15; col[i3+2]=0.9+t*0.1;
+  }
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  scene.add(new THREE.Points(geo, new THREE.PointsMaterial({size:0.12,sizeAttenuation:true,vertexColors:true,transparent:true,opacity:0.9})));
 })();
 
-/* ── Earth ────────────────────────────────────────────────── */
-const earthGeo  = new THREE.SphereGeometry(1, 64, 48);
-const earthMat  = new THREE.MeshPhongMaterial({
-  color: 0x2255aa,
-  emissive: 0x112244,
-  emissiveIntensity: 0.15,
-  shininess: 25,
-  wireframe: false
-});
-const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+/* ── Procedural Earth texture ─────────────────────────────── */
+function createEarthTexture(w,h){
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const ctx=c.getContext('2d');
+  /* ocean gradient */
+  const og=ctx.createLinearGradient(0,0,0,h);
+  og.addColorStop(0,'#0a1a4a');og.addColorStop(0.15,'#0c2255');
+  og.addColorStop(0.5,'#0d3070');og.addColorStop(0.85,'#0c2255');og.addColorStop(1,'#0a1a4a');
+  ctx.fillStyle=og;ctx.fillRect(0,0,w,h);
+
+  const img=ctx.getImageData(0,0,w,h), d=img.data;
+  const land=['#1a5a2a','#1e6630','#227038','#2a7a3a','#357a40','#4a8a4a'];
+  const desert=['#8a7a40','#9a8a4a','#7a6a35'];
+  for(let y=0;y<h;y++){
+    const lat=(y/h)*Math.PI, sinL=Math.sin(lat), cosL=Math.cos(lat);
+    for(let x=0;x<w;x++){
+      const lon=(x/w)*Math.PI*2;
+      const nx=Math.cos(lon)*sinL, ny=cosL, nz=Math.sin(lon)*sinL;
+      let n=0,amp=1,freq=1.8;
+      for(let o=0;o<6;o++){n+=amp*Math.sin(nx*freq*3.1+o*0.7)*Math.cos(ny*freq*2.9+o*1.3)*Math.sin(nz*freq*3.3+o*0.9);amp*=0.5;freq*=2.1;}
+      n=n*0.5+0.5;
+      const thresh=0.52, idx=(y*w+x)*4;
+      if(n>thresh){
+        const landN=(n-thresh)/(1-thresh);
+        if(lat<0.25||lat>Math.PI-0.25){d[idx]=220+Math.random()*30;d[idx+1]=225+Math.random()*25;d[idx+2]=235+Math.random()*15;}
+        else if((lat>0.8&&lat<1.2)||(lat>Math.PI-1.2&&lat<Math.PI-0.8)){const dc=desert[Math.floor(Math.random()*desert.length)];const r=parseInt(dc.slice(1,3),16),g=parseInt(dc.slice(3,5),16),b=parseInt(dc.slice(5,7),16);d[idx]=r+Math.random()*20;d[idx+1]=g+Math.random()*15;d[idx+2]=b+Math.random()*10;}
+        else{const lc=land[Math.floor(Math.random()*land.length)];const r=parseInt(lc.slice(1,3),16),g=parseInt(lc.slice(3,5),16),b=parseInt(lc.slice(5,7),16);const br=0.7+landN*0.6;d[idx]=r*br;d[idx+1]=g*br;d[idx+2]=b*br;if(n>0.7){const mt=(n-0.7)/0.3;d[idx]+=mt*60;d[idx+1]+=mt*50;d[idx+2]+=mt*40;}}
+      }else{
+        const depth=n/thresh;d[idx]=Math.floor(8+depth*20);d[idx+1]=Math.floor(25+depth*55);d[idx+2]=Math.floor(60+depth*80);
+        if(n>thresh-0.06){const coast=(n-(thresh-0.06))/0.06;d[idx]+=coast*15;d[idx+1]+=coast*40;d[idx+2]+=coast*25;}
+      }
+      d[idx+3]=255;
+    }
+  }
+  ctx.putImageData(img,0,0);
+  ctx.globalAlpha=0.12;ctx.fillStyle='#fff';
+  for(let i=0;i<180;i++){const cx=Math.random()*w,cy=h*0.15+Math.random()*h*0.7,cw=30+Math.random()*120,ch=4+Math.random()*12;ctx.beginPath();ctx.ellipse(cx,cy,cw,ch,Math.random()*0.5,0,Math.PI*2);ctx.fill();}
+  ctx.globalAlpha=1;
+  return new THREE.CanvasTexture(c);
+}
+
+const earthMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(1,80,60),
+  new THREE.MeshPhongMaterial({map:createEarthTexture(1024,512),shininess:15,specular:new THREE.Color(0x223355)})
+);
 scene.add(earthMesh);
 
-// Add subtle wireframe overlay for "globe" feel
-const wireGeo = new THREE.SphereGeometry(1.002, 32, 24);
-const wireMat = new THREE.MeshBasicMaterial({ color: 0x4488cc, wireframe: true, transparent: true, opacity: 0.08 });
-scene.add(new THREE.Mesh(wireGeo, wireMat));
+/* atmosphere layers */
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(1.015,64,48),new THREE.MeshPhongMaterial({color:0x4488ff,transparent:true,opacity:0.06})));
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(1.08,64,48),new THREE.MeshBasicMaterial({color:0x4499ff,transparent:true,opacity:0.07,side:THREE.BackSide})));
 
-// Atmosphere glow
-const atmoGeo = new THREE.SphereGeometry(1.06, 48, 32);
-const atmoMat = new THREE.MeshBasicMaterial({ color: 0x4499ff, transparent: true, opacity: 0.08, side: THREE.BackSide });
-scene.add(new THREE.Mesh(atmoGeo, atmoMat));
-
-/* ── Satellite ────────────────────────────────────────────── */
-const satGroup = new THREE.Group();
-// Body
-const satBody = new THREE.Mesh(
-  new THREE.BoxGeometry(0.04, 0.04, 0.06),
-  new THREE.MeshPhongMaterial({ color: 0xcccccc, emissive: 0x333333 })
-);
-satGroup.add(satBody);
-// Solar panels
-const panelMat = new THREE.MeshPhongMaterial({ color: 0x2244aa, emissive: 0x112266, side: THREE.DoubleSide });
-for(let s = -1; s <= 1; s += 2){
-  const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.03), panelMat);
-  panel.position.set(s * 0.06, 0, 0);
-  panel.rotation.y = Math.PI / 2;
-  satGroup.add(panel);
+/* cloud layer */
+function createCloudTex(w,h){
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const ctx=c.getContext('2d');ctx.clearRect(0,0,w,h);
+  for(let i=0;i<250;i++){ctx.globalAlpha=0.05+Math.random()*0.15;ctx.fillStyle='rgba(255,255,255,0.35)';const cx=Math.random()*w,cy=h*0.1+Math.random()*h*0.8;ctx.beginPath();ctx.ellipse(cx,cy,20+Math.random()*100,3+Math.random()*10,Math.random()*0.4,0,Math.PI*2);ctx.fill();}
+  return new THREE.CanvasTexture(c);
 }
+const cloudMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(1.025,64,48),
+  new THREE.MeshPhongMaterial({map:createCloudTex(1024,512),transparent:true,opacity:0.4,depthWrite:false,side:THREE.DoubleSide})
+);
+scene.add(cloudMesh);
+
+/* ── Realistic Satellite ──────────────────────────────────── */
+const satGroup = new THREE.Group();
+const busMat = new THREE.MeshPhongMaterial({color:0xc0c0c0,emissive:0x222222,shininess:60,specular:new THREE.Color(0x666666)});
+const goldMat = new THREE.MeshPhongMaterial({color:0xdaa520,emissive:0x332200,shininess:80});
+const strutMat = new THREE.MeshPhongMaterial({color:0x888888,emissive:0x111111});
+
+/* main bus */
+satGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.05,0.04,0.07),busMat));
+/* gold thermal blanket patches */
+const gp1=new THREE.Mesh(new THREE.PlaneGeometry(0.051,0.041),goldMat);gp1.position.set(0,0.0205,0);gp1.rotation.x=-Math.PI/2;satGroup.add(gp1);
+const gp2=new THREE.Mesh(new THREE.PlaneGeometry(0.051,0.071),goldMat);gp2.position.set(0.0255,0,0);gp2.rotation.y=Math.PI/2;satGroup.add(gp2);
+
+/* solar panel arrays with struts and grid lines */
+const panelMat=new THREE.MeshPhongMaterial({color:0x1a2a6a,emissive:0x0a1144,shininess:40,specular:new THREE.Color(0x334488),side:THREE.DoubleSide});
+const gridMat=new THREE.LineBasicMaterial({color:0x334488,transparent:true,opacity:0.5});
+for(let s=-1;s<=1;s+=2){
+  const panel=new THREE.Mesh(new THREE.PlaneGeometry(0.12,0.05),panelMat);panel.position.set(s*0.095,0,0);panel.rotation.y=Math.PI/2;satGroup.add(panel);
+  for(let g=-2;g<=2;g++){satGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(s*0.095,g*0.01,-0.025),new THREE.Vector3(s*0.095,g*0.01,0.025)]),gridMat));}
+  for(let g=-2;g<=2;g++){satGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(s*0.095,-0.025,g*0.01),new THREE.Vector3(s*0.095,0.025,g*0.01)]),gridMat));}
+  const strut=new THREE.Mesh(new THREE.CylinderGeometry(0.002,0.002,0.06,6),strutMat);strut.position.set(s*0.06,0,0);strut.rotation.z=Math.PI/2;satGroup.add(strut);
+}
+
+/* antenna dish + feed horn */
+const dish=new THREE.Mesh(new THREE.SphereGeometry(0.015,16,8,0,Math.PI*2,0,Math.PI*0.5),new THREE.MeshPhongMaterial({color:0xdddddd,emissive:0x222222,side:THREE.DoubleSide,shininess:50}));
+dish.position.set(0,0.035,-0.02);satGroup.add(dish);
+const feed=new THREE.Mesh(new THREE.CylinderGeometry(0.002,0.001,0.02,6),strutMat);feed.position.set(0,0.04,-0.02);satGroup.add(feed);
+/* antenna boom + tip */
+const boom=new THREE.Mesh(new THREE.CylinderGeometry(0.001,0.001,0.06,4),strutMat);boom.position.set(0,0.05,0.02);satGroup.add(boom);
+const tip=new THREE.Mesh(new THREE.SphereGeometry(0.003,8,6),new THREE.MeshPhongMaterial({color:0xff3333,emissive:0x660000}));tip.position.set(0,0.08,0.02);satGroup.add(tip);
+/* radiator fins */
+for(let s=-1;s<=1;s+=2){const fin=new THREE.Mesh(new THREE.PlaneGeometry(0.02,0.035),new THREE.MeshPhongMaterial({color:0x444444,emissive:0x111111,side:THREE.DoubleSide}));fin.position.set(0,-0.02,s*0.04);satGroup.add(fin);}
+/* tether deployment mechanism */
+const depl=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.006,0.015,8),new THREE.MeshPhongMaterial({color:0x888888,emissive:0x222222}));depl.position.set(0,-0.028,0);satGroup.add(depl);
 scene.add(satGroup);
 
 /* ── Tether line ──────────────────────────────────────────── */
-const tetherMat = new THREE.LineBasicMaterial({ color: 0xff6644, transparent: true, opacity: 0.9 });
-const tetherGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
-const tetherLine = new THREE.Line(tetherGeo, tetherMat);
+const tetherMat=new THREE.LineBasicMaterial({color:0xff6644,transparent:true,opacity:0.9});
+const tetherGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
+const tetherLine=new THREE.Line(tetherGeo,tetherMat);
 scene.add(tetherLine);
 
 /* ── Orbit trail ──────────────────────────────────────────── */
-const TRAIL_MAX = 2000;
-const trailPositions = new Float32Array(TRAIL_MAX * 3);
-const trailGeo = new THREE.BufferGeometry();
-trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
-trailGeo.setDrawRange(0, 0);
-const trailMat = new THREE.LineBasicMaterial({ color: 0x22ff88, transparent: true, opacity: 0.45 });
-const trailLine = new THREE.Line(trailGeo, trailMat);
-scene.add(trailLine);
-let trailIdx = 0;
-let trailCount = 0;
+const TRAIL_MAX=2000,trailPositions=new Float32Array(TRAIL_MAX*3);
+const trailGeo=new THREE.BufferGeometry();
+trailGeo.setAttribute('position',new THREE.BufferAttribute(trailPositions,3));
+trailGeo.setDrawRange(0,0);
+scene.add(new THREE.Line(trailGeo,new THREE.LineBasicMaterial({color:0x22ff88,transparent:true,opacity:0.45})));
+let trailIdx=0,trailCount=0;
 
-/* ── Predicted orbit (Keplerian ellipse approximation) ──── */
-const predPoints = [];
-for(let i = 0; i <= 200; i++) predPoints.push(new THREE.Vector3());
-const predGeo = new THREE.BufferGeometry().setFromPoints(predPoints);
-const predMat = new THREE.LineBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.3 });
-const predLine = new THREE.Line(predGeo, predMat);
-scene.add(predLine);
+/* ── Predicted orbit ──────────────────────────────────────── */
+const predPts=[];for(let i=0;i<=200;i++)predPts.push(new THREE.Vector3());
+const predGeo=new THREE.BufferGeometry().setFromPoints(predPts);
+scene.add(new THREE.Line(predGeo,new THREE.LineBasicMaterial({color:0xffaa44,transparent:true,opacity:0.3})));
 
 /* ── Magnetic field lines ─────────────────────────────────── */
-(function createFieldLines(){
-  const fieldGroup = new THREE.Group();
-  const nLines = 12;
-  for(let k = 0; k < nLines; k++){
-    const phi = (k / nLines) * Math.PI * 2;
-    const pts = [];
-    for(let th = -Math.PI * 0.45; th <= Math.PI * 0.45; th += 0.04){
-      // Dipole field line: r = L_shell * cos^2(theta)
-      const L = 2.8;
-      const rr = L * Math.cos(th) * Math.cos(th);
-      if(rr < 1.08) continue;
-      const x = rr * Math.cos(th) * Math.cos(phi);
-      const y = rr * Math.sin(th);
-      const z = rr * Math.cos(th) * Math.sin(phi);
-      pts.push(new THREE.Vector3(x, y, z));
+(function(){
+  const fg=new THREE.Group();
+  for(let k=0;k<14;k++){
+    const phi=(k/14)*Math.PI*2,pts=[];
+    for(let th=-Math.PI*0.45;th<=Math.PI*0.45;th+=0.035){
+      const rr=3.2*Math.cos(th)*Math.cos(th);if(rr<1.08)continue;
+      pts.push(new THREE.Vector3(rr*Math.cos(th)*Math.cos(phi),rr*Math.sin(th),rr*Math.cos(th)*Math.sin(phi)));
     }
-    if(pts.length > 2){
-      const geo = new THREE.BufferGeometry().setFromPoints(pts);
-      const mat = new THREE.LineBasicMaterial({ color: 0x6644ff, transparent: true, opacity: 0.15 });
-      fieldGroup.add(new THREE.Line(geo, mat));
-    }
+    if(pts.length>2)fg.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0x6644ff,transparent:true,opacity:0.12})));
   }
-  scene.add(fieldGroup);
+  scene.add(fg);
 })();
 
-/* ──────────────────────────────────────────────────────────
-   PHYSICS: MAGNETIC FIELD  (Dipole model in Cartesian)
-   B_r     =  -2 * MAG_MOM * sin(lat) / r^3
-   B_theta =     MAG_MOM * cos(lat) / r^3
-   We work in equatorial plane (lat ~ 0 for simplicity),
-   but handle 3D properly for generality.
-   ────────────────────────────────────────────────────────── */
+/* ── Physics ──────────────────────────────────────────────── */
 function magneticField(pos){
-  // pos is THREE.Vector3 in SI metres
-  const r  = pos.length();
-  const r3 = r * r * r;
-  // Magnetic dipole moment along +Y axis
-  const m = new THREE.Vector3(0, MAG_MOM, 0);
-  // B = (mu0/4pi)[ 3(m·r̂)r̂ - m ] / r^3   but for geomagnetic we use B0*R^3 already
-  // B = (3(m·r̂)r̂ - m) / r^3
-  const rhat = pos.clone().normalize();
-  const mdotr = m.dot(rhat);
-  const B = rhat.clone().multiplyScalar(3 * mdotr).sub(m).divideScalar(r3);
-  return B;
+  const r=pos.length(),r3=r*r*r;
+  const m=new THREE.Vector3(0,MAG_MOM,0),rhat=pos.clone().normalize();
+  return rhat.clone().multiplyScalar(3*m.dot(rhat)).sub(m).divideScalar(r3);
 }
-
-/* ──────────────────────────────────────────────────────────
-   PHYSICS: LORENTZ FORCE ON TETHER
-   F = I * (L_vec × B)
-   Tether is radial (along r̂ from Earth centre).
-   ────────────────────────────────────────────────────────── */
-function lorentzForce(pos, vel){
-  if(!state.currentOn) return new THREE.Vector3();
-  const rhat = pos.clone().normalize();
-  // Tether vector: along radial, length = tetherLength
-  const Lvec = rhat.clone().multiplyScalar(state.tetherLength);
-  const B = magneticField(pos);
-  // F = I * (dL × B)  integrated over tether (uniform I, uniform B approx)
-  const F = new THREE.Vector3().crossVectors(Lvec, B).multiplyScalar(state.currentMag * state.polarity);
-  state.lorentzMag = F.length();
-  return F;
+function lorentzForce(pos){
+  if(!state.currentOn)return new THREE.Vector3();
+  const Lvec=pos.clone().normalize().multiplyScalar(state.tetherLength);
+  const F=new THREE.Vector3().crossVectors(Lvec,magneticField(pos)).multiplyScalar(state.currentMag*state.polarity);
+  state.lorentzMag=F.length();return F;
 }
-
-/* ──────────────────────────────────────────────────────────
-   PHYSICS: ACCELERATION  (gravity + Lorentz)
-   ────────────────────────────────────────────────────────── */
-const SAT_MASS = 1000; // kg (typical small satellite)
-
-function acceleration(pos, vel){
-  const r = pos.length();
-  // Gravity: a_g = -MU / r^3 * r_vec
-  const aGrav = pos.clone().multiplyScalar(-MU / (r * r * r));
-  // Lorentz
-  const fL = lorentzForce(pos, vel);
-  const aLorentz = fL.divideScalar(SAT_MASS);
-  return aGrav.add(aLorentz);
+function acceleration(pos,vel){
+  const r=pos.length();
+  return pos.clone().multiplyScalar(-MU/(r*r*r)).add(lorentzForce(pos).divideScalar(SAT_MASS));
 }
-
-/* ──────────────────────────────────────────────────────────
-   INTEGRATOR:  RK4
-   ────────────────────────────────────────────────────────── */
-function rk4Step(pos, vel, dt){
-  // k1
-  const a1 = acceleration(pos, vel);
-  const k1v = a1.clone().multiplyScalar(dt);
-  const k1r = vel.clone().multiplyScalar(dt);
-
-  // k2
-  const p2 = pos.clone().add(k1r.clone().multiplyScalar(0.5));
-  const v2 = vel.clone().add(k1v.clone().multiplyScalar(0.5));
-  const a2 = acceleration(p2, v2);
-  const k2v = a2.clone().multiplyScalar(dt);
-  const k2r = v2.clone().multiplyScalar(dt);
-
-  // k3
-  const p3 = pos.clone().add(k2r.clone().multiplyScalar(0.5));
-  const v3 = vel.clone().add(k2v.clone().multiplyScalar(0.5));
-  const a3 = acceleration(p3, v3);
-  const k3v = a3.clone().multiplyScalar(dt);
-  const k3r = v3.clone().multiplyScalar(dt);
-
-  // k4
-  const p4 = pos.clone().add(k3r);
-  const v4 = vel.clone().add(k3v);
-  const a4 = acceleration(p4, v4);
-  const k4v = a4.clone().multiplyScalar(dt);
-  const k4r = v4.clone().multiplyScalar(dt);
-
-  // Combine
-  const dr = k1r.add(k2r.multiplyScalar(2)).add(k3r.multiplyScalar(2)).add(k4r).multiplyScalar(1/6);
-  const dv = k1v.add(k2v.multiplyScalar(2)).add(k3v.multiplyScalar(2)).add(k4v).multiplyScalar(1/6);
-
-  return {
-    pos: pos.clone().add(dr),
-    vel: vel.clone().add(dv)
-  };
+function rk4Step(pos,vel,dt){
+  const a1=acceleration(pos,vel),k1v=a1.clone().multiplyScalar(dt),k1r=vel.clone().multiplyScalar(dt);
+  const p2=pos.clone().add(k1r.clone().multiplyScalar(.5)),v2=vel.clone().add(k1v.clone().multiplyScalar(.5));
+  const a2=acceleration(p2,v2),k2v=a2.clone().multiplyScalar(dt),k2r=v2.clone().multiplyScalar(dt);
+  const p3=pos.clone().add(k2r.clone().multiplyScalar(.5)),v3=vel.clone().add(k2v.clone().multiplyScalar(.5));
+  const a3=acceleration(p3,v3),k3v=a3.clone().multiplyScalar(dt),k3r=v3.clone().multiplyScalar(dt);
+  const p4=pos.clone().add(k3r),v4=vel.clone().add(k3v);
+  const a4=acceleration(p4,v4),k4v=a4.clone().multiplyScalar(dt),k4r=v4.clone().multiplyScalar(dt);
+  return{pos:pos.clone().add(k1r.add(k2r.multiplyScalar(2)).add(k3r.multiplyScalar(2)).add(k4r).multiplyScalar(1/6)),
+         vel:vel.clone().add(k1v.add(k2v.multiplyScalar(2)).add(k3v.multiplyScalar(2)).add(k4v).multiplyScalar(1/6))};
 }
-
-/* ──────────────────────────────────────────────────────────
-   PREDICTED ORBIT (Keplerian, no tether)
-   ────────────────────────────────────────────────────────── */
 function updatePredictedOrbit(){
-  let pr = state.r.clone();
-  let pv = state.v.clone();
-  const pdt = 20; // seconds per step
-  const arr = predGeo.attributes.position.array;
-  for(let i = 0; i <= 200; i++){
-    const idx = i * 3;
-    arr[idx]   = pr.x / SCALE;
-    arr[idx+1] = pr.y / SCALE;
-    arr[idx+2] = pr.z / SCALE;
-    // Pure gravity step (no Lorentz) for prediction
-    const r  = pr.length();
-    const ag = pr.clone().multiplyScalar(-MU / (r * r * r));
-    pv = pv.clone().add(ag.multiplyScalar(pdt));
-    pr = pr.clone().add(pv.clone().multiplyScalar(pdt));
-  }
-  predGeo.attributes.position.needsUpdate = true;
+  let pr=state.r.clone(),pv=state.v.clone();const arr=predGeo.attributes.position.array;
+  for(let i=0;i<=200;i++){const idx=i*3;arr[idx]=pr.x/SCALE;arr[idx+1]=pr.y/SCALE;arr[idx+2]=pr.z/SCALE;const r=pr.length();const ag=pr.clone().multiplyScalar(-MU/(r*r*r));pv=pv.clone().add(ag.multiplyScalar(30));pr=pr.clone().add(pv.clone().multiplyScalar(30));}
+  predGeo.attributes.position.needsUpdate=true;
 }
 
-/* ──────────────────────────────────────────────────────────
-   UI CONTROLS
-   ────────────────────────────────────────────────────────── */
-const btnCurrentOn = document.getElementById('btnCurrentOn');
-const btnPolarity  = document.getElementById('btnPolarity');
-const sliderLen    = document.getElementById('sliderLen');
-const sliderCur    = document.getElementById('sliderCur');
-const sliderTime   = document.getElementById('sliderTime');
+/* ── UI Controls ──────────────────────────────────────────── */
+const btnCurrentOn=document.getElementById('btnCurrentOn'),btnPolarity=document.getElementById('btnPolarity');
+btnCurrentOn.addEventListener('click',()=>{state.currentOn=!state.currentOn;btnCurrentOn.textContent=state.currentOn?'Current: ON':'Current: OFF';btnCurrentOn.classList.toggle('active',state.currentOn);});
+btnPolarity.addEventListener('click',()=>{state.polarity*=-1;btnPolarity.textContent=state.polarity>0?'Polarity: + (Boost)':'Polarity: \u2212 (Drag)';btnPolarity.classList.toggle('active',state.polarity<0);});
+document.getElementById('sliderLen').addEventListener('input',e=>{state.tetherLength=parseFloat(e.target.value)*1e3;document.getElementById('valLen').textContent=e.target.value+' km';});
+document.getElementById('sliderCur').addEventListener('input',e=>{state.currentMag=parseFloat(e.target.value);document.getElementById('valCur').textContent=e.target.value+' A';});
+document.getElementById('sliderTime').addEventListener('input',e=>{state.timeWarp=parseFloat(e.target.value);document.getElementById('valTime').textContent=e.target.value+'\u00d7';});
 
-btnCurrentOn.addEventListener('click', () => {
-  state.currentOn = !state.currentOn;
-  btnCurrentOn.textContent = state.currentOn ? 'Current: ON' : 'Current: OFF';
-  btnCurrentOn.classList.toggle('active', state.currentOn);
-});
-
-btnPolarity.addEventListener('click', () => {
-  state.polarity *= -1;
-  btnPolarity.textContent = state.polarity > 0 ? 'Polarity: + (Boost)' : 'Polarity: − (Drag)';
-  btnPolarity.classList.toggle('active', state.polarity < 0);
-});
-
-sliderLen.addEventListener('input', e => {
-  state.tetherLength = parseFloat(e.target.value) * 1e3;
-  document.getElementById('valLen').textContent = e.target.value + ' km';
-});
-
-sliderCur.addEventListener('input', e => {
-  state.currentMag = parseFloat(e.target.value);
-  document.getElementById('valCur').textContent = e.target.value + ' A';
-});
-
-sliderTime.addEventListener('input', e => {
-  state.timeWarp = parseFloat(e.target.value);
-  document.getElementById('valTime').textContent = e.target.value + '×';
-});
-
-/* ──────────────────────────────────────────────────────────
-   TELEMETRY
-   ────────────────────────────────────────────────────────── */
-const tAlt    = document.getElementById('tAlt');
-const tVel    = document.getElementById('tVel');
-const tForce  = document.getElementById('tForce');
-const tEnergy = document.getElementById('tEnergy');
-const tPeriod = document.getElementById('tPeriod');
-
+/* ── Telemetry ────────────────────────────────────────────── */
+const tAlt=document.getElementById('tAlt'),tVel=document.getElementById('tVel'),tForce=document.getElementById('tForce'),tEnergy=document.getElementById('tEnergy'),tPeriod=document.getElementById('tPeriod');
 function updateTelemetry(){
-  const r = state.r.length();
-  const v = state.v.length();
-  const alt = (r - R_EARTH) / 1e3;
-  const vkm = v / 1e3;
-  const KE = 0.5 * SAT_MASS * v * v;
-  const PE = -MU * SAT_MASS / r;
-  const E  = KE + PE;
-  // Semi-major axis from vis-viva
-  const a = -MU * SAT_MASS / (2 * E);
-  const T = 2 * Math.PI * Math.sqrt(a * a * a / MU);
-
-  tAlt.textContent    = alt.toFixed(1) + ' km';
-  tVel.textContent    = vkm.toFixed(3) + ' km/s';
-  tForce.textContent  = state.lorentzMag.toFixed(4) + ' N';
-  tEnergy.textContent = (E / 1e6).toFixed(2) + ' MJ';
-  tPeriod.textContent = isFinite(T) ? (T / 60).toFixed(1) + ' min' : '—';
+  const r=state.r.length(),v=state.v.length(),alt=(r-R_EARTH)/1e3,vkm=v/1e3;
+  const KE=.5*SAT_MASS*v*v,PE=-MU*SAT_MASS/r,E=KE+PE;
+  const a=-MU*SAT_MASS/(2*E),T=2*Math.PI*Math.sqrt(a*a*a/MU);
+  tAlt.textContent=alt.toFixed(1)+' km';tVel.textContent=vkm.toFixed(3)+' km/s';
+  tForce.textContent=state.lorentzMag.toFixed(4)+' N';tEnergy.textContent=(E/1e6).toFixed(2)+' MJ';
+  tPeriod.textContent=isFinite(T)?(T/60).toFixed(1)+' min':'\u2014';
 }
 
-/* ──────────────────────────────────────────────────────────
-   ANIMATION LOOP
-   ────────────────────────────────────────────────────────── */
-let lastTime = 0;
-let trailTimer = 0;
-
-function animate(timestamp){
+/* ── Animation loop ───────────────────────────────────────── */
+let lastTime=0,trailTimer=0;
+function animate(ts){
   requestAnimationFrame(animate);
-  const dtReal = Math.min((timestamp - lastTime) / 1000, 0.05); // cap for tab inactivity
-  lastTime = timestamp;
-
-  const dtSim = dtReal * state.timeWarp;
-
-  // Sub-step to keep integration stable
-  const substeps = Math.max(1, Math.ceil(dtSim / 5));
-  const h = dtSim / substeps;
-  for(let i = 0; i < substeps; i++){
-    const result = rk4Step(state.r, state.v, h);
-    state.r = result.pos;
-    state.v = result.vel;
-  }
-
-  // Clamp minimum altitude to prevent crash through Earth
-  const rLen = state.r.length();
-  if(rLen < R_EARTH + 100e3){
-    state.r.normalize().multiplyScalar(R_EARTH + 100e3);
-    // Reflect radial velocity component
-    const rhat = state.r.clone().normalize();
-    const vr = rhat.clone().multiplyScalar(state.v.dot(rhat));
-    state.v.sub(vr).sub(vr); // reverse radial component
-  }
-
-  // ── Update 3D objects ──
-  const sx = state.r.x / SCALE;
-  const sy = state.r.y / SCALE;
-  const sz = state.r.z / SCALE;
-  satGroup.position.set(sx, sy, sz);
-  satGroup.lookAt(0, 0, 0);
-
-  // Tether (extends radially inward from satellite)
-  const rhat = state.r.clone().normalize();
-  const tetherEnd = state.r.clone().sub(rhat.multiplyScalar(state.tetherLength));
-  const tArr = tetherLine.geometry.attributes.position.array;
-  tArr[0] = sx; tArr[1] = sy; tArr[2] = sz;
-  tArr[3] = tetherEnd.x / SCALE; tArr[4] = tetherEnd.y / SCALE; tArr[5] = tetherEnd.z / SCALE;
-  tetherLine.geometry.attributes.position.needsUpdate = true;
-  // Color tether based on current
-  if(state.currentOn){
-    tetherLine.material.color.set(state.polarity > 0 ? 0x44ff88 : 0xff4466);
-    tetherLine.material.opacity = 1;
-  } else {
-    tetherLine.material.color.set(0xff6644);
-    tetherLine.material.opacity = 0.4;
-  }
-
-  // Trail
-  trailTimer += dtSim;
-  if(trailTimer > 10){
-    trailTimer = 0;
-    const ti = trailIdx * 3;
-    trailPositions[ti]   = sx;
-    trailPositions[ti+1] = sy;
-    trailPositions[ti+2] = sz;
-    trailIdx = (trailIdx + 1) % TRAIL_MAX;
-    trailCount = Math.min(trailCount + 1, TRAIL_MAX);
-    trailGeo.attributes.position.needsUpdate = true;
-    trailGeo.setDrawRange(0, trailCount);
-  }
-
-  // Predicted orbit (update less frequently)
-  if(Math.random() < 0.05) updatePredictedOrbit();
-
-  // Earth slow rotation
-  earthMesh.rotation.y += dtReal * 0.05;
-
-  // Telemetry
-  updateTelemetry();
-
-  controls3D.update();
-  renderer.render(scene, camera);
+  const dtReal=Math.min((ts-lastTime)/1000,.05);lastTime=ts;
+  const dtSim=dtReal*state.timeWarp;
+  const sub=Math.max(1,Math.ceil(dtSim/5)),h=dtSim/sub;
+  for(let i=0;i<sub;i++){const res=rk4Step(state.r,state.v,h);state.r=res.pos;state.v=res.vel;}
+  const rLen=state.r.length();
+  if(rLen<R_EARTH+100e3){state.r.normalize().multiplyScalar(R_EARTH+100e3);const rh=state.r.clone().normalize();const vr=rh.clone().multiplyScalar(state.v.dot(rh));state.v.sub(vr).sub(vr);}
+  const sx=state.r.x/SCALE,sy=state.r.y/SCALE,sz=state.r.z/SCALE;
+  satGroup.position.set(sx,sy,sz);satGroup.lookAt(0,0,0);
+  /* tether */
+  const rhat=state.r.clone().normalize(),tetEnd=state.r.clone().sub(rhat.multiplyScalar(state.tetherLength));
+  const tA=tetherLine.geometry.attributes.position.array;tA[0]=sx;tA[1]=sy;tA[2]=sz;tA[3]=tetEnd.x/SCALE;tA[4]=tetEnd.y/SCALE;tA[5]=tetEnd.z/SCALE;
+  tetherLine.geometry.attributes.position.needsUpdate=true;
+  if(state.currentOn){tetherLine.material.color.set(state.polarity>0?0x44ff88:0xff4466);tetherLine.material.opacity=1;}else{tetherLine.material.color.set(0xff6644);tetherLine.material.opacity=.4;}
+  /* trail */
+  trailTimer+=dtSim;if(trailTimer>15){trailTimer=0;const ti=trailIdx*3;trailPositions[ti]=sx;trailPositions[ti+1]=sy;trailPositions[ti+2]=sz;trailIdx=(trailIdx+1)%TRAIL_MAX;trailCount=Math.min(trailCount+1,TRAIL_MAX);trailGeo.attributes.position.needsUpdate=true;trailGeo.setDrawRange(0,trailCount);}
+  if(Math.random()<.04)updatePredictedOrbit();
+  earthMesh.rotation.y+=dtReal*.04;cloudMesh.rotation.y+=dtReal*.05;
+  updateTelemetry();controls3D.update();renderer.render(scene,camera);
 }
-
 requestAnimationFrame(animate);
 
-/* ── Resize ───────────────────────────────────────────────── */
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
+
+/* ── Back-to-top ──────────────────────────────────────────── */
+const backBtn=document.getElementById('backToTop');
+window.addEventListener('scroll',()=>{backBtn.classList.toggle('show',window.scrollY>window.innerHeight*.5);});
+backBtn.addEventListener('click',()=>{window.scrollTo({top:0,behavior:'smooth'});});
 
 /* ──────────────────────────────────────────────────────────
-   PRESENTATION  (5 pages)
+   PRESENTATION CONTENT  (~5 pages, continuous scroll)
    ────────────────────────────────────────────────────────── */
-const presPages = [
-/* PAGE 1 */
-`<h3>1 &mdash; Introduction: What is an Electrodynamic Tether?</h3>
-<p>An <strong>Electrodynamic Tether (EDT)</strong> is a long, thin conducting wire deployed from a spacecraft in orbit. By exploiting Earth&rsquo;s magnetic field, an EDT can generate thrust <em>without any chemical propellant</em>.</p>
-<p>The core idea is elegantly simple: a conductor moving through a magnetic field experiences an electromotive force (EMF). If we allow current to flow through the tether (by completing the circuit via electron collection and emission at the tether ends), the interaction of that current with the geomagnetic field produces a <strong>Lorentz force</strong>.</p>
+document.getElementById('presentation').innerHTML = `
+<h2>Electrodynamic Space Tether &mdash; Complete Guide</h2>
+
+<h3>1. Introduction: What is an Electrodynamic Tether?</h3>
+<p>An <strong>Electrodynamic Tether (EDT)</strong> is a long, thin conducting wire deployed from a spacecraft in orbit around a planet with a magnetic field. By exploiting the interaction between an electric current in the wire and the planet&rsquo;s magnetic field, an EDT can generate thrust <em>entirely without chemical propellant</em>.</p>
+<p>The fundamental concept is strikingly elegant: a conductor moving through a magnetic field experiences an electromotive force (EMF) &mdash; this is Faraday&rsquo;s law of induction at work on a grand scale. If we allow current to flow through the tether (by collecting electrons from the surrounding space plasma at one end and emitting them at the other), the interaction of that current with the geomagnetic field produces a mechanical <strong>Lorentz force</strong>.</p>
 <p>Depending on the direction of the current, this force can either:</p>
 <ul>
-  <li><strong>Boost</strong> the spacecraft to a higher orbit (propellantless thrust), or</li>
-  <li><strong>De-orbit</strong> it by acting as an electromagnetic brake (drag).</li>
+  <li><strong>Boost</strong> the spacecraft to a higher orbit &mdash; propellantless thrust that draws energy from an onboard power supply, or</li>
+  <li><strong>De-orbit</strong> the spacecraft by acting as an electromagnetic brake, converting orbital kinetic energy into electrical energy (which is then dissipated as heat or radiated).</li>
 </ul>
-<p>This concept is a cornerstone of <em>propellantless propulsion</em>, promising vastly cheaper and more sustainable space operations.</p>`,
+<p>This concept is a cornerstone of <em>propellantless propulsion</em>, promising vastly cheaper and more sustainable space operations. Unlike chemical rockets or ion engines, an EDT never runs out of fuel &mdash; it only needs electrical power (from solar panels) and the planet&rsquo;s magnetic field to operate indefinitely.</p>
 
-/* PAGE 2 */
-`<h3>2 &mdash; The Physics of the Lorentz Force</h3>
-<p>The fundamental equation governing the force on a current-carrying conductor in a magnetic field is:</p>
+<div class="divider"></div>
+
+<h3>2. The Physics of the Lorentz Force</h3>
+<p>The fundamental equation governing the force on a current-carrying conductor in a magnetic field is the <strong>Lorentz force law</strong>:</p>
 <div class="math-block">$$\\vec{F} = \\int I\\,(d\\vec{l} \\times \\vec{B})$$</div>
-<p>For a straight tether of length $L$ carrying uniform current $I$ in a roughly uniform field $\\vec{B}$, this simplifies to:</p>
+<p>For a straight tether of length $L$ carrying a uniform current $I$ in a roughly uniform magnetic field $\\vec{B}$, this integral simplifies to:</p>
 <div class="math-block">$$\\vec{F} = I\\,(\\vec{L} \\times \\vec{B})$$</div>
-<p>Let&rsquo;s break down how each variable influences thrust:</p>
+<p>Let&rsquo;s break down how each variable influences the generated thrust:</p>
 <ul>
-  <li><strong>Current ($I$):</strong> Higher current → greater force. Current is collected from the ambient plasma at one end (usually via a bare-wire segment or electron collector) and emitted at the other end (via a hollow-cathode or field-emission device).</li>
-  <li><strong>Tether Length ($L$):</strong> A longer tether intercepts more of the magnetic field and collects more current. Typical proposed lengths range from 5&ndash;100&nbsp;km.</li>
-  <li><strong>Magnetic Field ($\\vec{B}$):</strong> The geomagnetic field strength and orientation determine the magnitude and direction of the cross product, and hence the thrust vector.</li>
+  <li><strong>Current ($I$):</strong> Higher current produces proportionally greater force. In our simulation, the <em>Current Magnitude</em> slider ranges from <code>0 A to 20 A</code>. At the maximum setting of 20 A, the Lorentz force is four times greater than at the default 5 A setting.</li>
+  <li><strong>Tether Length ($L$):</strong> A longer tether intercepts more of the magnetic field and generates a larger cross-product. The <em>Tether Length</em> slider ranges from <code>1 km to 100 km</code>. The default value of 20 km is representative of real proposed tether missions (the TSS-1R experiment deployed a 20.7 km tether). Increasing the slider to 50 km dramatically increases the force.</li>
+  <li><strong>Magnetic Field ($\\vec{B}$):</strong> The geomagnetic field strength and orientation determine the magnitude and direction of $d\\vec{l} \\times \\vec{B}$. The field is strongest close to Earth and weakens as $1/r^3$.</li>
 </ul>
-<p>The direction of $d\\vec{l} \\times \\vec{B}$ is perpendicular to both the tether and the field — when aligned properly, this produces a tangential force that changes the orbital velocity.</p>`,
+<p>The direction of $\\vec{L} \\times \\vec{B}$ is perpendicular to both the tether and the magnetic field &mdash; when the tether is oriented radially and the field is roughly horizontal (as at the equator), this produces a force primarily along the satellite&rsquo;s velocity direction, either accelerating or decelerating it.</p>
 
-/* PAGE 3 */
-`<h3>3 &mdash; Orbital Mechanics Integration</h3>
-<p>In orbital mechanics, the <strong>vis-viva equation</strong> relates speed, position, and the semi-major axis $a$ of an orbit:</p>
+<div class="example-box">
+  <h4>&#128300; Try It Yourself &mdash; Simulation Example</h4>
+  <p>With the default settings (<code>L = 20 km</code>, <code>I = 5 A</code>, <code>Time Warp = 100&times;</code>):</p>
+  <ul>
+    <li>Click <strong>&ldquo;Current: OFF&rdquo;</strong> to toggle it to <strong>ON</strong>. The tether will glow green (boost mode).</li>
+    <li>Watch the <em>Altitude</em> telemetry slowly increase &mdash; the satellite is gaining orbital energy.</li>
+    <li>Now click <strong>&ldquo;Polarity: +&rdquo;</strong> to switch to <strong>&ldquo;Polarity: &minus; (Drag)&rdquo;</strong>. The tether turns red.</li>
+    <li>The <em>Altitude</em> will begin to decrease &mdash; the satellite is being dragged to a lower orbit.</li>
+  </ul>
+  <p>Increase the current to <code>15 A</code> and the tether to <code>50 km</code> &mdash; notice the Lorentz Force in the telemetry jumps from ~0.5 N to over ~6 N, and the orbit changes much faster.</p>
+</div>
+
+<div class="divider"></div>
+
+<h3>3. Orbital Mechanics Integration</h3>
+<p>In orbital mechanics, the <strong>vis-viva equation</strong> relates speed, distance from the central body, and the semi-major axis $a$ of an elliptical orbit:</p>
 <div class="math-block">$$v^2 = \\mu\\left(\\frac{2}{r} - \\frac{1}{a}\\right)$$</div>
-<p>where $\\mu = GM_\\oplus$ is Earth&rsquo;s standard gravitational parameter.</p>
-<p>When the Lorentz force has a <strong>tangential component</strong> (along the velocity vector), it does work on the satellite, changing its orbital energy:</p>
+<p>where $\\mu = GM_\\oplus \\approx 3.986 \\times 10^{14}\\, \\text{m}^3/\\text{s}^2$ is Earth&rsquo;s standard gravitational parameter.</p>
+<p>The total mechanical energy of the orbit is:</p>
+<div class="math-block">$$E = \\frac{1}{2}mv^2 - \\frac{\\mu m}{r} = -\\frac{\\mu m}{2a}$$</div>
+<p>When the Lorentz force has a component along the velocity vector (tangential component), it does work on the satellite, changing the orbital energy:</p>
 <div class="math-block">$$\\frac{dE}{dt} = \\vec{F}_{\\text{Lorentz}} \\cdot \\vec{v}$$</div>
 <ul>
-  <li><strong>Positive work</strong> ($\\vec{F} \\cdot \\vec{v} > 0$): Orbital energy increases → the semi-major axis grows → the orbit <em>climbs higher</em> (boost mode).</li>
-  <li><strong>Negative work</strong> ($\\vec{F} \\cdot \\vec{v} < 0$): Orbital energy decreases → the orbit <em>decays</em> (drag / de-orbit mode).</li>
+  <li><strong>Positive work</strong> ($\\vec{F} \\cdot \\vec{v} > 0$): Energy increases &rarr; the semi-major axis $a$ grows &rarr; the orbit <em>climbs higher</em>. This is <strong>boost mode</strong> (Polarity: +).</li>
+  <li><strong>Negative work</strong> ($\\vec{F} \\cdot \\vec{v} < 0$): Energy decreases &rarr; $a$ shrinks &rarr; the orbit <em>decays</em>. This is <strong>drag mode</strong> (Polarity: &minus;).</li>
 </ul>
-<p>This simulation uses a <strong>4th-order Runge-Kutta (RK4)</strong> numerical integrator to propagate the satellite's position and velocity at each timestep, accounting for both gravitational and electromagnetic accelerations simultaneously.</p>`,
+<p>This simulation uses a <strong>4th-order Runge-Kutta (RK4)</strong> numerical integrator to propagate the satellite&rsquo;s state vector (position and velocity) forward in time. RK4 is chosen for its excellent energy conservation over long integration periods &mdash; essential for accurately modelling the gradual orbital changes caused by the tether force.</p>
 
-/* PAGE 4 */
-`<h3>4 &mdash; Earth&rsquo;s Magnetic Field (Dipole Model)</h3>
-<p>To first order, Earth&rsquo;s magnetic field is well approximated as a <strong>magnetic dipole</strong>. The field components in spherical coordinates $(r, \\theta)$ are:</p>
+<div class="example-box">
+  <h4>&#128202; Understanding the Telemetry Panel</h4>
+  <p>The live telemetry on the simulation shows key orbital parameters:</p>
+  <ul>
+    <li><strong>Altitude (km):</strong> The satellite starts at approximately <code>3,185 km</code> (1.5 Earth radii from centre). In boost mode, this gradually increases.</li>
+    <li><strong>Velocity (km/s):</strong> For the starting circular orbit, this is approximately <code>6.26 km/s</code>. As the orbit changes shape, velocity varies with position (faster at perigee, slower at apogee).</li>
+    <li><strong>Lorentz Force (N):</strong> Shows the instantaneous electromagnetic thrust. With <code>L=20 km, I=5 A</code>, expect roughly <code>0.3&ndash;0.5 N</code>.</li>
+    <li><strong>Orbital Energy (MJ):</strong> The total mechanical energy. Negative for bound orbits; becomes less negative during boosting.</li>
+    <li><strong>Period (min):</strong> The time for one complete orbit. Starts at roughly <code>153 min</code> and increases during boosting (higher orbits take longer).</li>
+  </ul>
+</div>
+
+<div class="divider"></div>
+
+<h3>4. Earth&rsquo;s Magnetic Field &mdash; The Dipole Model</h3>
+<p>To first order, Earth&rsquo;s magnetic field is excellently approximated as a <strong>magnetic dipole</strong>. The field components in spherical coordinates $(r, \\theta)$ where $\\theta$ is the magnetic co-latitude are:</p>
 <div class="math-block">$$B_r = -\\frac{2\\,B_0\\,R_E^3}{r^3}\\sin\\theta \\qquad B_\\theta = \\frac{B_0\\,R_E^3}{r^3}\\cos\\theta$$</div>
-<p>where $B_0 \\approx 3.12 \\times 10^{-5}$&nbsp;T is the equatorial surface field strength, $R_E$ is Earth&rsquo;s radius, and $\\theta$ is the magnetic co-latitude.</p>
+<p>where $B_0 \\approx 3.12 \\times 10^{-5}$ T is the equatorial surface field strength and $R_E \\approx 6{,}371$ km is Earth&rsquo;s radius. The total field magnitude at distance $r$ in the equatorial plane is:</p>
+<div class="math-block">$$|B| = \\frac{B_0 R_E^3}{r^3}$$</div>
+<p>At our simulation&rsquo;s starting altitude of ~3,185 km (r = 1.5 R<sub>E</sub>), the field strength is:</p>
+<div class="math-block">$$|B| = \\frac{B_0}{1.5^3} = \\frac{3.12 \\times 10^{-5}}{3.375} \\approx 9.24 \\times 10^{-6}\\,\\text{T}$$</div>
+<p>This is about 30% of the surface field &mdash; still strong enough for meaningful tether thrust, but noticeably weaker than at low Earth orbit altitudes (400 km), where $|B| \\approx 2.6 \\times 10^{-5}$ T.</p>
 <p><strong>Challenges from orbital inclination:</strong></p>
 <ul>
-  <li>At the <strong>magnetic equator</strong>, field lines are roughly horizontal and perpendicular to a radial tether, maximising the cross product $\\vec{L} \\times \\vec{B}$ and hence the thrust.</li>
-  <li>Near the <strong>magnetic poles</strong>, field lines are nearly radial (parallel to the tether), so the cross product — and thus thrust — drops to near zero.</li>
-  <li>For orbits with high inclination, the effective thrust varies cyclically, and mission designers must average the force over an orbit to plan manoeuvres.</li>
+  <li>At the <strong>magnetic equator</strong>, field lines are roughly horizontal and perpendicular to a radial tether, maximising the cross product $\\vec{L} \\times \\vec{B}$ and hence the thrust. This is the ideal configuration, and is what our simulation models.</li>
+  <li>Near the <strong>magnetic poles</strong>, field lines are nearly radial (parallel to the tether), so the cross product &mdash; and thus thrust &mdash; drops to near zero.</li>
+  <li>For orbits with high inclination, the effective thrust varies cyclically as the satellite moves between equatorial and polar regions. Mission designers must average the force over a full orbit to plan manoeuvres.</li>
 </ul>
-<p>Higher-order multipole terms, solar-wind distortions, and the offset of the magnetic and geographic axes add further complexity to real mission planning.</p>`,
+<p>The purple field lines visible in the simulation show the dipole structure &mdash; notice how they emerge from the poles and loop around to the equator. The satellite&rsquo;s tether interacts most strongly when crossing these horizontal equatorial field lines.</p>
 
-/* PAGE 5 */
-`<h3>5 &mdash; Real-World Applications</h3>
-<p>Electrodynamic tethers have been studied and tested since the 1990s. Key missions and applications include:</p>
+<div class="example-box">
+  <h4>&#129522; Magnetic Field Visualisation</h4>
+  <p>In the 3D simulation, the faint purple curves represent Earth&rsquo;s magnetic dipole field lines. They follow the equation:</p>
+  <div class="math-block" style="margin:10px 0">$$r = L_{\\text{shell}} \\cos^2\\theta$$</div>
+  <p>where $L_{\\text{shell}}$ is the L-shell parameter (the equatorial crossing distance in Earth radii). These are the same field lines that trap charged particles in the Van Allen radiation belts.</p>
+</div>
+
+<div class="divider"></div>
+
+<h3>5. Real-World Applications &amp; Future Prospects</h3>
+<p>Electrodynamic tethers have been studied and flight-tested since the 1990s. Here are the key milestones and future applications:</p>
+
+<h3>Historic Missions</h3>
 <ul>
-  <li><strong>TSS-1R (1996):</strong> A joint NASA/ASI mission deployed a 20.7&nbsp;km tether from the Space Shuttle. It generated up to 3,500&nbsp;V of EMF and demonstrated the physics, though the tether broke due to an electrical arc.</li>
-  <li><strong>ProSEDS (planned):</strong> NASA&rsquo;s Propulsive Small Expendable Deployer System aimed to demonstrate de-orbiting using bare-wire EDT technology.</li>
+  <li><strong>TSS-1R (1996):</strong> A joint NASA/Italian Space Agency mission deployed a 20.7 km tether from the Space Shuttle <em>Columbia</em>. It generated up to 3,500 V of EMF and measured currents up to 480 mA, brilliantly demonstrating the physics. Unfortunately, the tether broke due to an electrical arc caused by a manufacturing defect in the insulation &mdash; but the fundamental physics was validated.</li>
+  <li><strong>SEDS (1993 &amp; 1994):</strong> The Small Expendable Deployer System missions demonstrated tether deployment and dynamics, with SEDS-2 successfully deploying a 20 km tether that remained stable.</li>
+  <li><strong>ProSEDS (cancelled):</strong> NASA&rsquo;s Propulsive Small Expendable Deployer System was designed to demonstrate de-orbiting a spent Delta II upper stage using bare-wire EDT technology &mdash; a direct demonstration of the &ldquo;space debris cleanup&rdquo; concept.</li>
 </ul>
-<p><strong>Future applications:</strong></p>
+
+<h3>Future Applications</h3>
 <ul>
-  <li><strong>ISS Station-Keeping:</strong> The ISS currently requires periodic chemical reboosts (costing millions of dollars in fuel). An EDT could maintain its orbit using only solar-powered current — saving propellant and extending station life.</li>
-  <li><strong>Space Debris Removal:</strong> Attaching a short EDT to defunct satellites or spent upper stages would cause passive drag, pulling them into the atmosphere to burn up within months instead of decades — a key tool for combating the growing debris problem.</li>
-  <li><strong>Deep-Space Propulsion:</strong> Jupiter and other planets with strong magnetic fields could enable EDT-based propulsion for exploring their moon systems.</li>
-  <li><strong>Orbit Transfer Vehicles:</strong> Reusable EDT tugs could ferry payloads between low and high orbits without consuming propellant.</li>
+  <li><strong>ISS Station-Keeping:</strong> The International Space Station currently loses about 2 km of altitude per month due to atmospheric drag at ~400 km. Periodic reboosts using Progress spacecraft cost millions of dollars in fuel. An EDT could maintain the station&rsquo;s orbit using only solar-powered current, potentially saving hundreds of millions over the station&rsquo;s remaining lifetime.</li>
+  <li><strong>Space Debris Removal:</strong> Attaching a compact EDT module to defunct satellites or spent upper stages would cause passive electromagnetic drag (no fuel needed &mdash; the orbital motion itself generates current). This could pull debris into the atmosphere to burn up within months instead of decades or centuries, offering a scalable solution to the growing space debris crisis.</li>
+  <li><strong>Jupiter System Exploration:</strong> Jupiter&rsquo;s magnetic field is approximately 20,000 times stronger than Earth&rsquo;s. EDT-equipped probes could perform orbit changes around Jupiter and its moons at virtually zero propellant cost &mdash; revolutionising exploration of the Jovian system, especially Europa.</li>
+  <li><strong>Orbit Transfer Vehicles:</strong> Reusable EDT &ldquo;tugs&rdquo; could ferry payloads between low Earth orbit and higher orbits (like geostationary transfer orbit) without consuming propellant. The tug would boost a payload up, then use drag mode to return itself to LEO for the next mission.</li>
+  <li><strong>Mars Exploration:</strong> While Mars has no global magnetic field, localised crustal magnetic fields in the southern hemisphere could potentially be exploited by future tether systems for limited propulsion near those regions.</li>
 </ul>
-<p>As our understanding of plasma physics and tether dynamics matures, EDTs represent one of the most promising technologies for sustainable, low-cost space operations.</p>`
-];
 
-let presPage = 0;
-const presContainer = document.getElementById('presPages');
-const presPageInd   = document.getElementById('presPageInd');
-const presModal     = document.getElementById('presModal');
+<div class="example-box">
+  <h4>&#128640; Experiment: Simulating ISS Reboost vs. Debris De-orbit</h4>
+  <p>To simulate an <strong>ISS-like reboost scenario</strong>:</p>
+  <ul>
+    <li>Set <code>Tether Length = 10 km</code>, <code>Current = 10 A</code>, <code>Polarity: + (Boost)</code></li>
+    <li>Turn the current ON and set <code>Time Warp = 500&times;</code></li>
+    <li>Watch the altitude gradually increase &mdash; this is propellantless station-keeping in action!</li>
+  </ul>
+  <p>To simulate <strong>debris de-orbiting</strong>:</p>
+  <ul>
+    <li>Set <code>Tether Length = 5 km</code>, <code>Current = 3 A</code>, <code>Polarity: &minus; (Drag)</code></li>
+    <li>Turn the current ON and increase <code>Time Warp = 800&times;</code></li>
+    <li>The altitude will steadily decrease &mdash; the tether acts as an electromagnetic brake, dragging the object toward re-entry.</li>
+  </ul>
+</div>
 
-function showPage(n){
-  presPage = Math.max(0, Math.min(n, presPages.length - 1));
-  presContainer.innerHTML = presPages[presPage];
-  presPageInd.textContent = (presPage + 1) + ' / ' + presPages.length;
-  // Re-typeset MathJax
-  if(window.MathJax && MathJax.typesetPromise){
-    MathJax.typesetPromise([presContainer]).catch(()=>{});
-  }
+<div class="divider"></div>
+
+<h3>How This Simulation Works</h3>
+<p>This interactive simulation brings together several computational physics techniques to model the electrodynamic tether system in real time:</p>
+<ol>
+  <li><strong>Gravitational Model:</strong> The satellite experiences central-body gravity: $\\vec{a}_g = -\\frac{\\mu}{r^3}\\vec{r}$, where $\\mu = GM_\\oplus = 3.986 \\times 10^{14}\\,\\text{m}^3/\\text{s}^2$.</li>
+  <li><strong>Magnetic Field Model:</strong> Earth&rsquo;s field is modelled as a magnetic dipole with the dipole moment aligned along the Y-axis (representing the geomagnetic axis). The field vector at any point is computed as: $\\vec{B} = \\frac{1}{r^3}\\left[3(\\vec{m} \\cdot \\hat{r})\\hat{r} - \\vec{m}\\right]$.</li>
+  <li><strong>Lorentz Force:</strong> With the tether oriented radially (along $\\hat{r}$), the force is $\\vec{F} = I(\\vec{L} \\times \\vec{B})$, applied in full when the current is toggled ON.</li>
+  <li><strong>RK4 Integrator:</strong> The satellite state (position + velocity) is propagated using 4th-order Runge-Kutta integration, with adaptive sub-stepping to maintain stability at high time-warp values.</li>
+  <li><strong>3D Visualisation:</strong> Three.js renders the Earth (with procedural texture), the satellite model, the tether, orbital trail, predicted trajectory, and magnetic field lines in real time.</li>
+</ol>
+
+<div class="example-box">
+  <h4>&#9881;&#65039; Slider Reference Guide</h4>
+  <p>Here&rsquo;s what each control does and recommended values to try:</p>
+  <ul>
+    <li><strong>Current ON/OFF:</strong> Master switch for the electromagnetic force. When OFF, the satellite follows a pure Keplerian (gravity-only) orbit.</li>
+    <li><strong>Polarity (+/&minus;):</strong> Determines whether the Lorentz force adds energy (boost, +) or removes energy (drag, &minus;) from the orbit.</li>
+    <li><strong>Tether Length (1&ndash;100 km):</strong> Default 20 km. Try 50 km for stronger effects. Real-world tethers of 5&ndash;20 km have been successfully deployed.</li>
+    <li><strong>Current Magnitude (0&ndash;20 A):</strong> Default 5 A. Try 15&ndash;20 A for dramatic orbital changes. Real systems target 1&ndash;10 A depending on available power.</li>
+    <li><strong>Time Warp (1&ndash;1000&times;):</strong> Default 100&times;. Use 1&times; for near-real-time (very slow orbital changes). Use 500&ndash;1000&times; to see orbit raising/lowering clearly over seconds.</li>
+  </ul>
+</div>
+
+<div class="divider"></div>
+<p style="text-align:center;color:#5a7aa0;font-size:14px;margin-top:30px">
+  Electrodynamic Space Tether Simulator &mdash; Built with Three.js, MathJax &amp; real orbital physics.
+</p>
+`;
+
+/* Typeset MathJax in presentation */
+if(window.MathJax && MathJax.typesetPromise){
+  MathJax.typesetPromise([document.getElementById('presentation')]).catch(function(){});
+} else {
+  window.addEventListener('load', function(){
+    if(window.MathJax && MathJax.typesetPromise){
+      MathJax.typesetPromise([document.getElementById('presentation')]).catch(function(){});
+    }
+  });
 }
-
-document.getElementById('openPresBtn').addEventListener('click', () => {
-  presModal.classList.add('open');
-  showPage(presPage);
-});
-document.getElementById('closePresBtn').addEventListener('click', () => {
-  presModal.classList.remove('open');
-});
-presModal.addEventListener('click', e => {
-  if(e.target === presModal) presModal.classList.remove('open');
-});
-document.getElementById('presNext').addEventListener('click', () => showPage(presPage + 1));
-document.getElementById('presPrev').addEventListener('click', () => showPage(presPage - 1));
 </script>
 </body>
 </html>
