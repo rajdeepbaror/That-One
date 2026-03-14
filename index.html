@@ -211,11 +211,11 @@ state.v = new THREE.Vector3(0, 0, startV);  // tangential
    THREE.JS  SETUP
    ────────────────────────────────────────────────────────── */
 const scene    = new THREE.Scene();
-const camera   = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.01, 200);
+const camera   = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 200);
 camera.position.set(0, 3, 5);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 document.body.appendChild(renderer.domElement);
 
 const controls3D = new THREE.OrbitControls(camera, renderer.domElement);
@@ -282,7 +282,7 @@ for(let s = -1; s <= 1; s += 2){
 scene.add(satGroup);
 
 /* ── Tether line ──────────────────────────────────────────── */
-const tetherMat = new THREE.LineBasicMaterial({ color: 0xff6644, linewidth: 2, transparent: true, opacity: 0.9 });
+const tetherMat = new THREE.LineBasicMaterial({ color: 0xff6644, transparent: true, opacity: 0.9 });
 const tetherGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
 const tetherLine = new THREE.Line(tetherGeo, tetherMat);
 scene.add(tetherLine);
@@ -520,7 +520,7 @@ let trailTimer = 0;
 
 function animate(timestamp){
   requestAnimationFrame(animate);
-  const dtReal = Math.min((timestamp - lastTime) / 1000, 0.05); // cap for tab-away
+  const dtReal = Math.min((timestamp - lastTime) / 1000, 0.05); // cap for tab inactivity
   lastTime = timestamp;
 
   const dtSim = dtReal * state.timeWarp;
@@ -598,9 +598,9 @@ requestAnimationFrame(animate);
 
 /* ── Resize ───────────────────────────────────────────────── */
 window.addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 /* ──────────────────────────────────────────────────────────
