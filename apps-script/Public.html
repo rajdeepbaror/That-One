@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Borrow Request - Aero Fabrication Club</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary-color: #2563eb;
+      --primary-dark: #1e40af;
+      --success-color: #16a34a;
+      --error-color: #dc2626;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --bg-light: #f9fafb;
+      --border-color: #e5e7eb;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primary-color: #3b82f6;
+        --primary-dark: #2563eb;
+        --text-primary: #f9fafb;
+        --text-secondary: #d1d5db;
+        --bg-light: #1f2937;
+        --border-color: #374151;
+      }
+
+      body {
+        background: #111827;
+        color: var(--text-primary);
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      color: var(--text-primary);
+      background: #ffffff;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      text-align: center;
+      padding: 30px 0;
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 30px;
+    }
+
+    .logo {
+      max-width: 80px;
+      height: auto;
+      margin-bottom: 15px;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      color: var(--primary-color);
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 16px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .nav-btn {
+      padding: 8px 16px;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-primary);
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+      background: var(--bg-light);
+      border-color: var(--primary-color);
+    }
+
+    .section {
+      margin-bottom: 40px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .required {
+      color: var(--error-color);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      background: white;
+      color: var(--text-primary);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      input, select, textarea {
+        background: #374151;
+        border-color: #4b5563;
+      }
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .items-container {
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 15px;
+      background: var(--bg-light);
+    }
+
+    .item-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr auto;
+      gap: 10px;
+      margin-bottom: 15px;
+      padding: 15px;
+      background: white;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .item-row {
+        background: #1f2937;
+      }
+
+      .items-container {
+        background: #111827;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .item-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-light);
+    }
+
+    .btn-danger {
+      background: var(--error-color);
+      color: white;
+    }
+
+    .btn-success {
+      background: var(--success-color);
+      color: white;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .success-box, .error-box {
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .success-box {
+      background: #d1fae5;
+      border: 1px solid #10b981;
+      color: #065f46;
+    }
+
+    .error-box {
+      background: #fee2e2;
+      border: 1px solid #ef4444;
+      color: #991b1b;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .success-box {
+        background: #064e3b;
+        color: #d1fae5;
+      }
+
+      .error-box {
+        background: #7f1d1d;
+        color: #fee2e2;
+      }
+    }
+
+    .info-box {
+      background: var(--bg-light);
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid var(--primary-color);
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .email-template {
+      background: var(--bg-light);
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      border: 1px solid var(--border-color);
+    }
+
+    .copy-btn {
+      margin-top: 10px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-active {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .status-overdue {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .status-returned {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .status-active {
+        background: #1e3a8a;
+        color: #93c5fd;
+      }
+
+      .status-overdue {
+        background: #7f1d1d;
+        color: #fca5a5;
+      }
+
+      .status-returned {
+        background: #064e3b;
+        color: #6ee7b7;
+      }
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .detail-item {
+      padding: 12px;
+      background: var(--bg-light);
+      border-radius: 6px;
+    }
+
+    .detail-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .detail-value {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .items-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .items-list li {
+      padding: 10px;
+      background: var(--bg-light);
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img id="clubLogo" class="logo hidden" alt="Club Logo">
+      <h1 id="clubName">Aero Fabrication Club</h1>
+      <p class="subtitle">IIIT Delhi Murathganj - Inventory Borrow Request System</p>
+      <div class="nav-links">
+        <button class="nav-btn" onclick="showBorrowForm()">Borrow Items</button>
+        <button class="nav-btn" onclick="showStatusCheck()">Check Status</button>
+      </div>
+    </div>
+
+    <!-- Borrow Form Section -->
+    <div id="borrowFormSection" class="section">
+      <h2>Borrow Request Form</h2>
+
+      <div class="info-box">
+        Fill out this form to request items from our inventory. You will receive a Request ID that you can use to check your request status.
+      </div>
+
+      <form id="borrowForm">
+        <div class="form-group">
+          <label>Full Name <span class="required">*</span></label>
+          <input type="text" name="borrower_name" required>
+        </div>
+
+        <div class="form-group">
+          <label>Email <span class="required">*</span></label>
+          <input type="email" name="borrower_email" required>
+        </div>
+
+        <div class="form-group">
+          <label>Phone Number <span class="required">*</span></label>
+          <input type="tel" name="borrower_phone" required>
+        </div>
+
+        <div class="form-group">
+          <label>Roll Number / ID <span class="required">*</span></label>
+          <input type="text" name="borrower_roll" required>
+        </div>
+
+        <div class="form-group">
+          <label>Borrower Type <span class="required">*</span></label>
+          <select name="borrower_type" required>
+            <option value="">Select type...</option>
+            <option value="IIITDMJ Student">IIITDMJ Student</option>
+            <option value="IIITDMJ Staff">IIITDMJ Staff</option>
+            <option value="External / Other">External / Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Other Details (Optional)</label>
+          <input type="text" name="borrower_other_details" placeholder="e.g., Department, Year">
+        </div>
+
+        <div class="form-group">
+          <label>Purpose <span class="required">*</span></label>
+          <textarea name="purpose" required placeholder="Describe why you need these items"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Duration (Days) <span class="required">*</span></label>
+          <input type="number" name="duration_days" id="durationInput" min="1" required>
+        </div>
+
+        <div class="form-group">
+          <label>Items <span class="required">*</span></label>
+          <div class="items-container">
+            <div id="itemsContainer"></div>
+            <button type="button" class="btn btn-secondary" onclick="addItemRow()">+ Add Item</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Borrow Request</button>
+      </form>
+    </div>
+
+    <!-- Success Section -->
+    <div id="successSection" class="section hidden">
+      <div class="success-box">
+        <h2>✓ Request Submitted Successfully!</h2>
+        <p>Your borrow request has been created.</p>
+      </div>
+
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-label">Request ID</div>
+          <div class="detail-value" id="successRequestId"></div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Start Date/Time</div>
+          <div class="detail-value" id="successStartDate"></div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Due Date/Time</div>
+          <div class="detail-value" id="successDueDate"></div>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <strong>Important:</strong> Please copy the declaration email below and send it to the club email address.
+      </div>
+
+      <div id="emailTemplate" class="email-template"></div>
+
+      <button class="btn btn-primary copy-btn" onclick="copyEmailToClipboard()">Copy Email to Clipboard</button>
+
+      <div style="margin-top: 30px; text-align: center;">
+        <button class="btn btn-secondary" onclick="showBorrowForm()">Submit Another Request</button>
+        <button class="btn btn-secondary" onclick="showStatusCheckWithId()">Check This Request Status</button>
+      </div>
+    </div>
+
+    <!-- Status Check Section -->
+    <div id="statusCheckSection" class="section hidden">
+      <h2>Check Request Status</h2>
+
+      <div class="info-box">
+        Enter your Request ID to check the status of your borrow request.
+      </div>
+
+      <form id="statusForm" onsubmit="checkStatus(event)">
+        <div class="form-group">
+          <label>Request ID <span class="required">*</span></label>
+          <input type="text" id="statusRequestId" required placeholder="e.g., REQ-20260404-0001">
+        </div>
+        <button type="submit" class="btn btn-primary">Check Status</button>
+      </form>
+
+      <div id="statusResult" class="hidden"></div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="loading hidden">
+      <p>Loading...</p>
+    </div>
+
+    <!-- Error Display -->
+    <div id="errorDisplay" class="error-box hidden"></div>
+  </div>
+
+  <script>
+    let settings = {};
+    let currentRequestId = '';
+    let emailContent = {};
+
+    // Initialize
+    window.onload = function() {
+      loadSettings();
+      addItemRow(); // Add first item row
+    };
+
+    function loadSettings() {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          settings = result;
+          document.getElementById('clubName').textContent = result.club_name;
+          document.getElementById('durationInput').value = result.default_duration_days;
+
+          if (result.logo_file_id) {
+            const logo = document.getElementById('clubLogo');
+            logo.src = `https://drive.google.com/uc?id=${result.logo_file_id}`;
+            logo.classList.remove('hidden');
+          }
+        })
+        .getPublicSettings();
+    }
+
+    function showBorrowForm() {
+      hideAll();
+      document.getElementById('borrowFormSection').classList.remove('hidden');
+    }
+
+    function showStatusCheck() {
+      hideAll();
+      document.getElementById('statusCheckSection').classList.remove('hidden');
+    }
+
+    function showStatusCheckWithId() {
+      showStatusCheck();
+      document.getElementById('statusRequestId').value = currentRequestId;
+    }
+
+    function hideAll() {
+      document.querySelectorAll('.section').forEach(el => el.classList.add('hidden'));
+      document.getElementById('errorDisplay').classList.add('hidden');
+    }
+
+    function showError(message) {
+      const errorDiv = document.getElementById('errorDisplay');
+      errorDiv.textContent = message;
+      errorDiv.classList.remove('hidden');
+      window.scrollTo(0, 0);
+    }
+
+    function showLoading(show) {
+      document.getElementById('loadingIndicator').classList.toggle('hidden', !show);
+    }
+
+    // Item management
+    let itemCounter = 0;
+
+    function addItemRow() {
+      itemCounter++;
+      const container = document.getElementById('itemsContainer');
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.id = `item-${itemCounter}`;
+      row.innerHTML = `
+        <div>
+          <input type="text" placeholder="Item name *" class="item-name" required>
+          <input type="text" placeholder="Item notes (optional)" class="item-notes" style="margin-top: 10px;">
+        </div>
+        <div>
+          <input type="number" placeholder="Qty *" class="item-quantity" min="1" required>
+        </div>
+        <div style="display: flex; align-items: center;">
+          <button type="button" class="btn btn-danger" onclick="removeItemRow(${itemCounter})" style="padding: 8px 12px;">Remove</button>
+        </div>
+      `;
+      container.appendChild(row);
+    }
+
+    function removeItemRow(id) {
+      const row = document.getElementById(`item-${id}`);
+      if (row) {
+        row.remove();
+      }
+
+      // Ensure at least one item row
+      if (document.getElementById('itemsContainer').children.length === 0) {
+        addItemRow();
+      }
+    }
+
+    // Form submission
+    document.getElementById('borrowForm').onsubmit = function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(e.target);
+      const data = {
+        borrower_name: formData.get('borrower_name'),
+        borrower_email: formData.get('borrower_email'),
+        borrower_phone: formData.get('borrower_phone'),
+        borrower_roll: formData.get('borrower_roll'),
+        borrower_type: formData.get('borrower_type'),
+        borrower_other_details: formData.get('borrower_other_details'),
+        purpose: formData.get('purpose'),
+        duration_days: parseInt(formData.get('duration_days')),
+        items: []
+      };
+
+      // Collect items
+      const itemRows = document.querySelectorAll('.item-row');
+      itemRows.forEach(row => {
+        const name = row.querySelector('.item-name').value.trim();
+        const quantity = parseInt(row.querySelector('.item-quantity').value);
+        const notes = row.querySelector('.item-notes').value.trim();
+
+        if (name && quantity > 0) {
+          data.items.push({
+            item_name: name,
+            quantity: quantity,
+            item_notes: notes
+          });
+        }
+      });
+
+      if (data.items.length === 0) {
+        showError('Please add at least one item with a valid quantity.');
+        return;
+      }
+
+      showLoading(true);
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          showLoading(false);
+          if (result.success) {
+            currentRequestId = result.request_id;
+            displaySuccess(result, data);
+          } else {
+            showError(result.error || 'Failed to submit request');
+          }
+        })
+        .withFailureHandler(function(error) {
+          showLoading(false);
+          showError('Error: ' + error.message);
+        })
+        .createBorrowRequest(data);
+    };
+
+    function displaySuccess(result, requestData) {
+      hideAll();
+
+      document.getElementById('successRequestId').textContent = result.request_id;
+      document.getElementById('successStartDate').textContent = formatDateTime(result.start_datetime);
+      document.getElementById('successDueDate').textContent = formatDateTime(result.due_datetime);
+
+      requestData.request_id = result.request_id;
+      requestData.start_datetime = result.start_datetime;
+      requestData.due_datetime = result.due_datetime;
+
+      google.script.run
+        .withSuccessHandler(function(email) {
+          emailContent = email;
+          document.getElementById('emailTemplate').textContent = 
+            `To: ${email.to}\nSubject: ${email.subject}\n\n${email.body}`;
+        })
+        .generateEmailContent(requestData);
+
+      document.getElementById('successSection').classList.remove('hidden');
+    }
+
+    function copyEmailToClipboard() {
+      const text = `To: ${emailContent.to}\nSubject: ${emailContent.subject}\n\n${emailContent.body}`;
+      navigator.clipboard.writeText(text).then(function() {
+        alert('Email content copied to clipboard!');
+      }).catch(function(err) {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('Email content copied to clipboard!');
+      });
+    }
+
+    // Status check
+    function checkStatus(e) {
+      e.preventDefault();
+
+      const requestId = document.getElementById('statusRequestId').value.trim();
+      if (!requestId) return;
+
+      showLoading(true);
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          showLoading(false);
+          if (result.success) {
+            displayStatus(result.request);
+          } else {
+            document.getElementById('statusResult').innerHTML = 
+              `<div class="error-box">${result.error || 'Request not found'}</div>`;
+            document.getElementById('statusResult').classList.remove('hidden');
+          }
+        })
+        .withFailureHandler(function(error) {
+          showLoading(false);
+          showError('Error: ' + error.message);
+        })
+        .getRequestById(requestId, false);
+    }
+
+    function displayStatus(request) {
+      const statusClass = request.status.toLowerCase().replace(' ', '-');
+      let html = `
+        <h3>Request Details</h3>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="detail-label">Request ID</div>
+            <div class="detail-value">${request.request_id}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Status</div>
+            <div class="detail-value"><span class="status-badge status-${statusClass}">${request.status}</span></div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Start Date/Time</div>
+            <div class="detail-value">${formatDateTime(request.start_datetime)}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Due Date/Time</div>
+            <div class="detail-value">${formatDateTime(request.due_datetime)}</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 20px;">Borrowed Items</h4>
+        <ul class="items-list">
+      `;
+
+      request.items.forEach(item => {
+        html += `<li><strong>${item.item_name}</strong> - Quantity: ${item.quantity}`;
+        if (item.item_notes) {
+          html += `<br><small style="color: var(--text-secondary);">${item.item_notes}</small>`;
+        }
+        html += `</li>`;
+      });
+
+      html += `</ul>`;
+
+      if (request.status === 'Returned Confirmed' && request.returned_confirmed_at) {
+        html += `
+          <div class="success-box" style="margin-top: 20px;">
+            <strong>✓ Returned</strong><br>
+            Confirmed at: ${formatDateTime(request.returned_confirmed_at)}<br>
+            Confirmed by: ${request.returned_confirmed_by}
+          </div>
+        `;
+      }
+
+      document.getElementById('statusResult').innerHTML = html;
+      document.getElementById('statusResult').classList.remove('hidden');
+    }
+
+    function formatDateTime(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (e) {
+        return dateStr;
+      }
+    }
+  </script>
+</body>
+</html>
